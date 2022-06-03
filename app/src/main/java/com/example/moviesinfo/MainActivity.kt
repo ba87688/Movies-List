@@ -2,115 +2,133 @@ package com.example.moviesinfo
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.util.Log
 import androidx.fragment.app.Fragment
 import com.example.moviesinfo.databinding.ActivityMainBinding
 import com.example.moviesinfo.ui.HomePageFrag
 import com.example.moviesinfo.ui.SearchPageFrag
+import java.lang.IllegalArgumentException
+
+
 
 class MainActivity : AppCompatActivity() {
 
-
-    //viewbinding
+    //viewbindind
     private lateinit var binding: ActivityMainBinding
 
-    //fragments
-    private lateinit var homeFragment: HomePageFrag
-    private lateinit var searchFragment: SearchPageFrag
+    //declare the different fragments
+    private lateinit var homePageFrag: HomePageFrag
+    private lateinit var searchPageFrag: SearchPageFrag
 
-    //making an array of the home page fragment and search page fragment
-    private val fragments: Array<Fragment>
-        get() = arrayOf(homeFragment, searchFragment)
 
-    //index of fragment
+    //create a array that will hold the fragments
+    private val fragment: Array<Fragment>
+        get() =
+            arrayOf(
+                homePageFrag,
+                searchPageFrag,
+            )
+
     private var indexSelected = 0
-    private val selectedFragment get() = fragments[indexSelected]
+
+    private val selectedFragment get() = fragment[indexSelected]
+
+
+
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-
-        //setting up viewbinding
+        //assign binding variable
         binding = ActivityMainBinding.inflate(layoutInflater)
-        val view = binding.root
-        setContentView(view)
 
 
+        setContentView(binding.root)
 
+//        check if there has been a configuration change.
+//        if it is null, there has been no config change
 
         if (savedInstanceState == null) {
 
-            //initialize the fragments
-            homeFragment = HomePageFrag()
-            searchFragment = SearchPageFrag()
-
-            val tran =  supportFragmentManager.beginTransaction()
+//        initialize the lateinit fragments
+            homePageFrag = HomePageFrag()
+            searchPageFrag = SearchPageFrag()
 
 
-
-            tran.add(R.id.fragmentContainerView, homeFragment, HOME_PAGE_FRAGMENT)
-                .add(R.id.fragmentContainerView, searchFragment, SEARCH_PAGE_FRAGMENT)
-
-            tran.commit()
+            //before we can attach and detach, we have to add the fragments to container.
+            supportFragmentManager.beginTransaction()
+                .add(R.id.fragment_container, homePageFrag, HOME_PAGE_FRAGMENT)
+                .add(R.id.fragment_container, searchPageFrag, SEARCH_PAGE_FRAGMENT)
+                .commit()
         }
         else{
-            homeFragment = supportFragmentManager.findFragmentByTag(HOME_PAGE_FRAGMENT) as HomePageFrag
-            searchFragment = supportFragmentManager.findFragmentByTag(SEARCH_PAGE_FRAGMENT) as SearchPageFrag
+//            in case there was a configuration change...
+//            fragments are still in memory but the fragment manager is responsible for finding them. restores them
+            homePageFrag =
+                supportFragmentManager.findFragmentByTag(HOME_PAGE_FRAGMENT) as HomePageFrag
+            searchPageFrag =
+                supportFragmentManager.findFragmentByTag(SEARCH_PAGE_FRAGMENT) as SearchPageFrag
 
-            indexSelected = savedInstanceState.getInt(SELECTED_INDEX, 0)
+            //retrieve the selected index which was saved when there is a config change. set default to first fragment,0
+            indexSelected = savedInstanceState.getInt(SELECTED_INDEX_VALUE,0)
         }
 
-//        selectFragment(selectedFragment)
+        //this will select first view because the index is set to 0
+        selectedFragment(selectedFragment)
 
 
 
-//        NAVIGATION MENU ITEMS
-        binding.buttonNav.setOnNavigationItemSelectedListener { itemSelected ->
-            var frag = when(itemSelected.itemId){
-                R.id.home -> homeFragment
-                R.id.search -> searchFragment
+
+
+        //NAVIGATION ITEM VIEW
+        binding.buttonNav.setOnNavigationItemSelectedListener {itemSelected ->
+            var fragment = when (itemSelected.itemId){
+                R.id.home -> homePageFrag
+                R.id.search -> searchPageFrag
                 else -> throw IllegalArgumentException("error")
             }
-            selectFragment(frag)
+            selectedFragment(fragment)
             true
-
         }
+
+
+
 
     }
 
 
-    private fun selectFragment(selectedFrag:Fragment){
+    //function responsbile for inserting selected fragment on screen
+    private fun selectedFragment(selectedFragment: Fragment) {
         var transaction = supportFragmentManager.beginTransaction()
 
-        //attach and detach the right fragments.
-        fragments.forEachIndexed{ index, fragment ->
-            Log.i(TAG, "selectFragment: $index ")
-            if (selectedFrag == fragment){
+        //go through the array and see if they match with selectedFragment.
+//    if they match, put it on screen. if not, detach fragment from screen
+        fragment.forEachIndexed { index, fragment ->
+            if (selectedFragment == fragment) {
                 transaction = transaction.attach(fragment)
-                indexSelected=index
-
+                indexSelected = index
+            } else {
+                transaction = transaction.detach(fragment)
             }
-            //remove the fragments that don't match
-            else{
-                transaction= transaction.detach(fragment)
-            }
-            //commit the changes
-            transaction.commit()
-
         }
+        transaction.commit()
+
 
 
     }
+
+
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        outState.putInt(SELECTED_INDEX, indexSelected)
-    }
 
+//        save index when there is a configuration change
+        outState.putInt(SELECTED_INDEX_VALUE,indexSelected)
+    }
 }
 
-const val HOME_PAGE_FRAGMENT = "HOME FRAGMENT"
-const val SEARCH_PAGE_FRAGMENT = "SEARCH FRAGMENT"
-const val TAG = "MAIN ACTIVITY"
-const val SELECTED_INDEX = "Selected Index"
+
+private const val HOME_PAGE_FRAGMENT = "HOME_PAGE_FRAG"
+private const val SEARCH_PAGE_FRAGMENT = "SEARCH_PAGE_FRAG"
+private const val SELECTED_INDEX_VALUE = "SELECTED_INDEX_VALUE"
+
